@@ -31,7 +31,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
-	yaml_util "github.com/prometheus/prometheus/util/yaml"
 	"gopkg.in/fsnotify/fsnotify.v1"
 	"gopkg.in/yaml.v2"
 )
@@ -49,20 +48,14 @@ var (
 type SDConfig struct {
 	Files           []string       `yaml:"files"`
 	RefreshInterval model.Duration `yaml:"refresh_interval,omitempty"`
-
-	// Catches all undefined fields and must be empty after parsing.
-	XXX map[string]interface{} `yaml:",inline"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (c *SDConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	*c = DefaultSDConfig
 	type plain SDConfig
-	err := unmarshal((*plain)(c))
-	if err != nil {
-		return err
-	}
-	if err := yaml_util.CheckOverflow(c.XXX, "file_sd_config"); err != nil {
+
+	if err := unmarshal((*plain)(c)); err != nil {
 		return err
 	}
 	if len(c.Files) == 0 {
@@ -385,7 +378,7 @@ func (d *Discovery) readFile(filename string) ([]*targetgroup.Group, error) {
 			return nil, err
 		}
 	case ".yml", ".yaml":
-		if err := yaml.Unmarshal(content, &targetGroups); err != nil {
+		if err := yaml.UnmarshalStrict(content, &targetGroups); err != nil {
 			return nil, err
 		}
 	default:

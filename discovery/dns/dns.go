@@ -27,7 +27,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
-	yaml_util "github.com/prometheus/prometheus/util/yaml"
 )
 
 const (
@@ -66,19 +65,14 @@ type SDConfig struct {
 	RefreshInterval model.Duration `yaml:"refresh_interval,omitempty"`
 	Type            string         `yaml:"type"`
 	Port            int            `yaml:"port"` // Ignored for SRV records
-	// Catches all undefined fields and must be empty after parsing.
-	XXX map[string]interface{} `yaml:",inline"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (c *SDConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	*c = DefaultSDConfig
 	type plain SDConfig
-	err := unmarshal((*plain)(c))
-	if err != nil {
-		return err
-	}
-	if err := yaml_util.CheckOverflow(c.XXX, "dns_sd_config"); err != nil {
+
+	if err := unmarshal((*plain)(c)); err != nil {
 		return err
 	}
 	if len(c.Names) == 0 {
